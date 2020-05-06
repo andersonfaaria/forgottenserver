@@ -58,6 +58,11 @@ extern Scripts* g_scripts;
 
 Game::Game()
 {
+	spoofPlayers = 0;
+	spoofNoise = 0;
+	lastSpoofUpdateNoiseTime = 0;
+	lastSpoofUpdateTime = 0;
+	
 	offlineTrainingWindow.choices.emplace_back("Sword Fighting and Shielding", SKILL_SWORD);
 	offlineTrainingWindow.choices.emplace_back("Axe Fighting and Shielding", SKILL_AXE);
 	offlineTrainingWindow.choices.emplace_back("Club Fighting and Shielding", SKILL_CLUB);
@@ -3673,6 +3678,57 @@ void Game::removeCreatureCheck(Creature* creature)
 	}
 }
 
+size_t Game::getMaxSpoofPlayers()
+{
+	auto min_players = g_config.getNumber(ConfigManager::SPOOF_DAILY_MIN_PLAYERS);
+	auto max_players = g_config.getNumber(ConfigManager::SPOOF_DAILY_MAX_PLAYERS);
+	auto spoof_noise_interval = g_config.getNumber(ConfigManager::SPOOF_NOISE_INTERVAL);
+	if ((OTSYS_TIME() - lastSpoofUpdateNoiseTime) >= spoof_noise_interval) {
+		auto spoof_noise_cnf = g_config.getNumber(ConfigManager::SPOOF_NOISE);
+		spoofNoise = uniform_random(-spoof_noise_cnf, spoof_noise_cnf);
+		lastSpoofUpdateNoiseTime = OTSYS_TIME();
+	}
+	auto epoch_time = OTSYS_TIME() + g_config.getNumber(ConfigManager::SPOOF_TIMEZONE) * (60 * 60 * 1000);
+	double pt = ((epoch_time / 1000) % 43200) / 43200.0 * acos(-1.0);
+	return std::max(static_cast<size_t>(min_players + sin(pt) * (max_players - min_players)) + spoofNoise, size_t(0));
+}
+
+void Game::updateSpoofPlayers()
+{
+	if (!g_config.getBoolean(ConfigManager::SPOOF_ENABLED)) {
+		return;
+	}
+	auto spoof_update_interval = g_config.getNumber(ConfigManager::SPOOF_INTERVAL);
+	if ((OTSYS_TIME() - lastSpoofUpdateTime) < spoof_update_interval) {
+		return;
+	}
+	lastSpoofUpdateTime = OTSYS_TIME();
+	auto spoof_change_chance = g_config.getNumber(ConfigManager::SPOOF_CHANGE_CHANCE);
+	if (uniform_random(0, 100) > spoof_change_chance) {
+		return;
+	}
+
+	const size_t max_players = g_config.getNumber(ConfigManager::MAX_PLAYERS);
+	const size_t max_spoof_players = getMaxSpoofPlayers();
+	if (getPlayersOnline() > max_players || spoofPlayers > max_spoof_players) {
+		if (spoofPlayers > 0) {
+			spoofPlayers--;
+		}
+	} else {
+		auto spoof_increment_chance = g_config.getNumber(ConfigManager::SPOOF_INCREMENT_CHANCE);
+		if (spoof_increment_chance > 1 && uniform_random(0, spoof_increment_chance - 1) == 0) {
+			if (spoofPlayers > 0) {
+				spoofPlayers--;
+			}
+		} else {
+			spoofPlayers++;
+		}
+	}
+	std::cout << players.size() << " normal players online, ";
+	std::cout << spoofPlayers << " spoof players online (max allowed: " << max_spoof_players << ")." << std::endl;
+	checkPlayersRecord();
+}
+
 void Game::checkCreatures(size_t index)
 {
 	g_scheduler.addEvent(createSchedulerTask(EVENT_CHECK_CREATURE_INTERVAL, std::bind(&Game::checkCreatures, this, (index + 1) % EVENT_CREATURECOUNT)));
@@ -3697,6 +3753,7 @@ void Game::checkCreatures(size_t index)
 		}
 	}
 
+	updateSpoofPlayers();
 	cleanup();
 }
 

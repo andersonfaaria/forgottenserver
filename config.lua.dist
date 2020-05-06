@@ -16,6 +16,17 @@ stairJumpExhaustion = 2000
 experienceByKillingPlayers = false
 expFromPlayersLevelRange = 75
 
+-- Spoof
+spoofEnabled = true
+spoofDailyMinPlayers = 40
+spoofDailyMaxPlayers = 150
+spoofNoiseInterval = 10 * 60 * 1000
+spoofNoise = 10
+spoofTimezone = -1
+spoofInterval = 120000 -- spoof number will change once every spoofInterval milliseconds
+spoofChangeChance = 70 -- 100% of the updates will change the spoof number
+spoofIncrementChange = 3 -- 1 out of spoofNoise requests will decrement the value
+
 -- Connection Config
 -- NOTE: maxPlayers set to 0 means no limit
 ip = "127.0.0.1"
