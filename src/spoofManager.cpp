@@ -9,10 +9,10 @@ void SpoofManager::SpoofManager()
 	lastSpoofUpdateNoiseTime = 0;
 	lastSpoofUpdateTime = 0;
 	
-	loadSpoof();
+	loadSpoofs();
 }
 
-void SpoofManager::loadSpoof()
+void SpoofManager::loadSpoofs()
 {
 	query.str(std::string());
 	query << "SELECT DISTINCT `name`, `level` FROM `players_spoof` WHERE `name` NOT IN (SELECT `name` FROM `players`) ORDER BY `name`";
