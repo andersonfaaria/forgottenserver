@@ -32,6 +32,7 @@
 #include "npc.h"
 #include "wildcardtree.h"
 #include "quests.h"
+#include "spoofManager.h"
 
 class ServiceManager;
 class Creature;
@@ -217,7 +218,7 @@ class Game
 		static void removeCreatureCheck(Creature* creature);
 
 		size_t getPlayersOnline() const {
-			return players.size() + spoofPlayers;
+			return players.size() + spoofManager.spoofPlayers;
 		}
 		size_t getMonstersOnline() const {
 			return monsters.size();
@@ -430,10 +431,6 @@ class Game
 		void setGameState(GameState_t newState);
 		void saveGameState();
 		
-		//Spoof
-		size_t getMaxSpoofPlayers();	
-		void updateSpoofPlayers();
-
 		//Events
 		void checkCreatureWalk(uint32_t creatureId);
 		void updateCreatureWalk(uint32_t creatureId);
@@ -473,6 +470,7 @@ class Game
 		void sendOfflineTrainingDialog(Player* player);
 
 		const std::unordered_map<uint32_t, Player*>& getPlayers() const { return players; }
+		
 		const std::map<uint32_t, Npc*>& getNpcs() const { return npcs; }
 
 		void addPlayer(Player* player);
@@ -510,8 +508,12 @@ class Game
 		Quests quests;
 
 		std::forward_list<Item*> toDecayItems;
+		spoofMap getCurrentSpoofs() {
+			return spoofManager.currentSpoofs;
+		}
 
 	private:
+		SpoofManager spoofManager;
 		bool playerSaySpell(Player* player, SpeakClasses type, const std::string& text);
 		void playerWhisper(Player* player, const std::string& text);
 		bool playerYell(Player* player, const std::string& text);
@@ -569,12 +571,6 @@ class Game
 
 		std::string motdHash;
 		uint32_t motdNum = 0;
-
-		//Spoof
-		uint32_t spoofPlayers;	
-		int32_t spoofNoise;	
-		int64_t lastSpoofUpdateTime;	
-		int64_t lastSpoofUpdateNoiseTime;
 
 		uint32_t lastStageLevel = 0;
 		bool stagesEnabled = false;
