@@ -201,16 +201,22 @@ void ProtocolStatus::sendInfo(uint16_t requestedInfo, const std::string& charact
 		output->addByte(0x21); // players info - online players list
 
 		const auto& players = g_game.getPlayers();
-		output->add<uint32_t>(players.size());
+		const auto& spoofs = g_game.getCurrentSpoofs();
+		output->add<uint32_t>(players.size() + spoofs.size());
 		for (const auto& it : players) {
 			output->addString(it.second->getName());
 			output->add<uint32_t>(it.second->getLevel());
+		}
+		
+		for (const auto& it : spoofs) {
+			output->addString(it.first);
+			output->add<uint32_t>(it.second);
 		}
 	}
 
 	if (requestedInfo & REQUEST_PLAYER_STATUS_INFO) {
 		output->addByte(0x22); // players info - online status info of a player
-		if (g_game.getPlayerByName(characterName) != nullptr) {
+		if (g_game.getPlayerByName(characterName) != nullptr || g_game.getCurrentSpoofs()[characterName]) {
 			output->addByte(0x01);
 		} else {
 			output->addByte(0x00);
